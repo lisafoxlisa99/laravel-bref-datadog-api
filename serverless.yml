@@ -1,0 +1,78 @@
+service: laravel-84-test
+
+provider:
+    name: aws
+    region: ap-southeast-2
+    stage: dev
+    environment:
+        # Laravel Essentials
+        APP_ENV: production
+        APP_KEY: 'base64:aqIOr0nFlPj0RtsUR4MTtIu4EBWohrOr9qcw0xVZE6c='
+        
+        # Lambda Filesystem Fixes (Prevents SQLITE Readonly Errors)
+        SESSION_DRIVER: cookie
+        CACHE_STORE: array
+        LOG_CHANNEL: stderr
+        DB_CONNECTION: sqlite
+        DB_DATABASE: /tmp/database.sqlite
+        VIEW_COMPILED_PATH: /tmp/storage/framework/views
+        BREF_LARAVEL_STORAGE: /tmp/storage
+
+        # Datadog Core
+        DD_SITE: "datadoghq.com"
+        DD_API_KEY: "70a09b7c1a7fd01e2b784260a2bb16e9"
+        DD_ENV: "dev"
+        DD_SERVICE: "laravel-84-test"
+        DD_VERSION: "1.1.0"
+        
+        # Tracing & Log Correlation
+        DD_TRACE_ENABLED: "true"
+        DD_AGENT_HOST: localhost
+        DD_TRACE_AUTO_FLUSH_ENABLED: "true"
+        DD_TRACE_SAMPLE_RATE: "1.0"
+        DD_LOGS_INJECTION: "true"          # Injects trace IDs into application logs
+        DD_SERVERLESS_LOGS_ENABLED: "true"  # Enables log collection via Extension
+
+functions:
+    web:
+        handler: public/index.php
+        runtime: php-84-fpm
+        layers:
+            - arn:aws:lambda:ap-southeast-2:464622532012:layer:Datadog-Extension:66
+            - ${bref-extra:datadog-php-84}
+        events:
+            - httpApi: '*'
+
+    artisan:
+        handler: artisan
+        runtime: php-84-console
+        layers:
+            - arn:aws:lambda:ap-southeast-2:464622532012:layer:Datadog-Extension:66
+            - ${bref-extra:datadog-php-84}
+
+plugins:
+    - ./vendor/bref/bref
+    - ./vendor/bref/extra-php-extensions
+
+package:
+    individually: true
+    patterns:
+        - '!**'
+        - 'app/**'
+        - 'bootstrap/**'
+        - 'config/**'
+        - 'database/**'
+        - 'public/**'
+        - 'resources/**'
+        - 'routes/**'
+        - 'vendor/**'
+        - 'artisan'
+        - 'composer.json'
+        - 'instrumentation.php'
+        - 'serverless.yml'
+        - '!storage/**'
+        - '!tests/**'
+        - '!node_modules/**'
+        - '!vendor/**/Tests/**'
+        - '!vendor/**/tests/**'
+        - '!vendor/**/*.md'
